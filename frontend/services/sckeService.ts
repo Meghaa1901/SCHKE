@@ -1,0 +1,431 @@
+
+import { GoogleGenAI, Type } from "@google/genai";
+import { Patient, RetrievalResult, AccessLog, Prescription, Hospital, RDFTriple } from '../types';
+import { 
+  ONTOLOGY_CONDITIONS, 
+  ONTOLOGY_ALLERGIES, 
+  MOCK_HOSPITAL_DATA, 
+  MOCK_CLINICAL_NOTES 
+} from '../constants';
+
+// Minimal in-memory RDF Graph for Semantic Reasoning
+class RDFGraph {
+  triples: RDFTriple[] = [];
+
+  add(subject: string, predicate: string, object: string) {
+    if (!this.triples.find(t => t.subject === subject && t.predicate === predicate && t.object === object)) {
+      this.triples.push({ subject, predicate, object });
+    }
+  }
+
+  match(s?: string, p?: string, o?: string): RDFTriple[] {
+    return this.triples.filter(t => 
+      (!s || t.subject === s) && 
+      (!p || t.predicate === p) && 
+      (!o || t.object === o)
+    );
+  }
+}
+
+class SCKEService {
+  private patients: Patient[] = [
+    { 
+      id: 'PAT-123456', 
+      name: 'John Doe', 
+      age: 45,
+      gender: 'Male',
+      blood_type: 'A+',
+      phone: '+1 (555) 019-2834',
+      national_id_hash: 'sha-77a...',
+      unique_id: '123456789012',
+      id_type: 'Aadhar',
+      secure_key: 'SCKE-JD92',
+      password: 'password123', 
+      medications: [], 
+      conditions: ['Diabetes'] 
+    },
+    { 
+      id: 'PAT-888999', 
+      name: 'Jane Smith', 
+      age: 32,
+      gender: 'Female',
+      blood_type: 'B-',
+      phone: '+1 (555) 837-1122',
+      national_id_hash: 'sha-33c...',
+      unique_id: '0x888b6...',
+      id_type: 'Blockchain',
+      secure_key: 'SCKE-JS21',
+      password: 'password123', 
+      medications: ['Aspirin'], 
+      conditions: ['Stroke'] 
+    },
+    // DEMO PATIENT FOR REVIEWERS
+    { 
+      id: 'PAT-DEMO', 
+      name: 'Alex Rivera', 
+      age: 41,
+      gender: 'Male',
+      blood_type: 'O+',
+      phone: '+1 (555) 999-0000',
+      national_id_hash: 'sha-demo-99',
+      unique_id: '999988887777',
+      id_type: 'Aadhar',
+      secure_key: 'DEMO-123',
+      password: 'demo', 
+      medications: ['Lisinopril 10mg', 'Atorvastatin 20mg', 'Omeprazole 40mg', 'Ibuprofen 400mg PRN'],
+      conditions: ['Hypertension'],
+      blood_test_reports: [
+        {
+          reportId: 'BTR-001',
+          testType: 'CBC',
+          hemoglobin: 14.2,
+          whiteBloodCells: 7500,
+          platelets: 250000,
+          glucose: 95,
+          sodium: 140,
+          potassium: 4.2,
+          liverEnzymes: 25,
+          kidneyMarkers: 0.9,
+          reportDate: '2025-05-15',
+          validityStatus: 'expired'
+        },
+        {
+          reportId: 'BTR-002',
+          testType: 'Metabolic Panel',
+          hemoglobin: 14.5,
+          whiteBloodCells: 7200,
+          platelets: 245000,
+          glucose: 92,
+          sodium: 138,
+          potassium: 4.0,
+          liverEnzymes: 22,
+          kidneyMarkers: 0.85,
+          reportDate: '2026-02-10',
+          validityStatus: 'valid'
+        }
+      ]
+    },
+  ];
+
+  private hospitals: Hospital[] = [
+    { id: 'HOSP-01', name: 'General Medical Center', style: 'Formal/ICD', managedBy: 'GMC Hospital Board' },
+    { id: 'HOSP-02', name: 'Community Wellness Clinic', style: 'Informal', managedBy: 'Wellness Health Group' },
+    { id: 'HOSP-03', name: 'City Urgent Care', style: 'Abbreviations', managedBy: 'City Health Authority' },
+    { id: 'HOSP-04', name: 'St. Mary\'s Specialized Hospital', style: 'Formal/ICD', managedBy: 'St. Mary\'s Healthcare System' },
+    { id: 'HOSP-05', name: 'Riverside Pediatric Center', style: 'Informal', managedBy: 'Riverside Health Trust' },
+    { id: 'HOSP-DEMO', name: 'Metropolis General (Reviewer Node)', style: 'Hybrid', managedBy: 'Metropolis Health Administration' },
+  ];
+
+  private prescriptions: Prescription[] = [];
+  private logs: AccessLog[] = [
+    { timestamp: new Date(Date.now() - 3600000).toISOString(), hospital_id: 'HOSP-01', action: 'DATA_RETRIEVAL_EMERGENCY', patient_id: 'PAT-123456', details: 'Source: HOSP-02, HOSP-03' },
+    { timestamp: new Date(Date.now() - 7200000).toISOString(), hospital_id: 'HOSP-02', action: 'CLINICAL_DOC_AI_ANALYSIS_SYNC', patient_id: 'PAT-888999', details: 'Vision AI processing complete' },
+    { timestamp: new Date(Date.now() - 86400000).toISOString(), hospital_id: 'HOSP-03', action: 'DATA_RETRIEVAL_ROUTINE', patient_id: 'PAT-DEMO', details: 'Source: HOSP-01' },
+    { timestamp: new Date(Date.now() - 172800000).toISOString(), hospital_id: 'HOSP-01', action: 'FEDERATED_MODEL_UPDATE', patient_id: 'SYSTEM', details: 'Local weights contributed to global model v1.4' },
+  ];
+
+  registerPatient(name: string, age: number, unique_id: string, id_type: 'Aadhar' | 'Blockchain'): Patient {
+    const id = `PAT-${Math.floor(10000 + Math.random() * 90000)}`;
+    const secure_key = `SCKE-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+    const newPatient: Patient = { 
+      id, 
+      name, 
+      age, 
+      national_id_hash: `sha-${Math.random().toString(36).substring(7)}`,
+      unique_id,
+      id_type,
+      secure_key,
+      password: secure_key, // For legacy compatibility
+      medications: [],
+      conditions: []
+    };
+    this.patients.push(newPatient);
+    return newPatient;
+  }
+
+  validatePatient(patId: string, secure_key: string): Patient | undefined {
+    return this.patients.find(p => p.id === patId && p.secure_key === secure_key);
+  }
+
+  registerHospital(name: string, style: string, managedBy?: string): Hospital {
+    const id = `HOSP-${Math.floor(10 + Math.random() * 89)}`;
+    const newHospital: Hospital = { id, name, style, managedBy: managedBy || 'Hospital Administration' };
+    this.hospitals.push(newHospital);
+    return newHospital;
+  }
+
+  getHospitals(): Hospital[] {
+    return this.hospitals;
+  }
+
+  getHospital(id: string): Hospital | undefined {
+    return this.hospitals.find(h => h.id === id);
+  }
+
+  getPatient(id: string): Patient | undefined {
+    return this.patients.find(p => p.id === id);
+  }
+
+  getPrescriptions(patient_id: string): Prescription[] {
+    return this.prescriptions.filter(p => p.patient_id === patient_id);
+  }
+
+  getAccessLogs(patient_id: string): AccessLog[] {
+    return this.logs.filter(l => l.patient_id === patient_id);
+  }
+
+  getHospitalLogs(hospital_id: string): AccessLog[] {
+    return this.logs.filter(l => l.hospital_id === hospital_id || l.details?.includes(hospital_id));
+  }
+
+  // Expose the core ontology as an RDF Graph for UI visualization
+  getOntologyRDF(): RDFTriple[] {
+    const graph = new RDFGraph();
+    Object.entries(ONTOLOGY_CONDITIONS).forEach(([syn, can]) => {
+      const synNode = `snomed:${syn.replace(/\s+/g, '_').toLowerCase()}`;
+      const canNode = `snomed:${can.replace(/\s+/g, '_').toLowerCase()}`;
+      graph.add(synNode, 'owl:sameAs', canNode);
+      graph.add(canNode, 'rdfs:label', `"${can}"`);
+    });
+    return graph.triples;
+  }
+
+  async processPrescription(source_id: string, patient_id: string, base64Image: string): Promise<Prescription> {
+    let jsonStr = "{}";
+    
+    try {
+      // Initialize AI inside the function to ensure process.env.API_KEY is loaded
+      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      
+      // Dynamically extract the MIME type (e.g., image/png, image/jpeg, image/webp)
+      const mimeTypeMatch = base64Image.match(/^data:(.*?);base64,/);
+      const mimeType = mimeTypeMatch ? mimeTypeMatch[1] : 'image/jpeg';
+      const data = base64Image.includes(',') ? base64Image.split(',')[1] : base64Image;
+
+      const response = await ai.models.generateContent({
+        model: 'gemini-3-flash-preview',
+        contents: {
+          parts: [
+            {
+              inlineData: {
+                data: data,
+                mimeType: mimeType
+              }
+            },
+            {
+              text: `Act as a medical multi-agent system. Analyze this clinical document (prescription or lab report). 
+              Extract:
+              1. Diagnosed Conditions (Formal medical terms)
+              2. Prescribed Medications (name and dosage)
+              3. Lab Results (test name, value, unit, reference range, and status like normal/abnormal)
+              4. A "Patient Plain-English" explanation. Translate complex medical terms into simple concepts. 
+              Example: Hyperlipidemia -> High cholesterol. Hypertension -> High Blood Pressure.
+              Return JSON only.`
+            }
+          ]
+        },
+        config: {
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: Type.OBJECT,
+            properties: {
+              conditions: { type: Type.ARRAY, items: { type: Type.STRING } },
+              medications: { type: Type.ARRAY, items: { type: Type.STRING } },
+              lab_results: { 
+                type: Type.ARRAY, 
+                items: { 
+                  type: Type.OBJECT,
+                  properties: {
+                    test_name: { type: Type.STRING },
+                    value: { type: Type.STRING },
+                    unit: { type: Type.STRING },
+                    reference_range: { type: Type.STRING },
+                    status: { type: Type.STRING, enum: ["normal", "abnormal", "critical"] }
+                  },
+                  required: ["test_name", "value", "unit"]
+                }
+              },
+              explanation: { type: Type.STRING }
+            },
+            required: ["conditions", "medications", "explanation"]
+          }
+        }
+      });
+      
+      jsonStr = response.text || "{}";
+    } catch (error) {
+      console.error("Gemini API Error details:", error);
+      throw error;
+    }
+
+    let parsed;
+    try {
+      parsed = JSON.parse(jsonStr);
+    } catch (e) {
+      parsed = { conditions: [], medications: [], lab_results: [], explanation: "SYSTEM ERROR: Could not parse medical handwriting." };
+    }
+
+    const newPrescription: Prescription = {
+      id: `RX-${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
+      patient_id,
+      hospital_id: source_id,
+      date: new Date().toISOString(),
+      raw_content: jsonStr,
+      ai_explanation: parsed.explanation,
+      extracted_terms: [...(parsed.conditions || []), ...(parsed.medications || [])],
+      extracted_labs: (parsed.lab_results || []).map((l: any) => ({ ...l, date: new Date().toISOString() }))
+    };
+
+    this.prescriptions.push(newPrescription);
+    
+    this.logs.push({
+      timestamp: new Date().toISOString(),
+      hospital_id: source_id,
+      action: 'CLINICAL_DOC_AI_ANALYSIS_SYNC',
+      patient_id
+    });
+
+    const patient = this.getPatient(patient_id);
+    if (patient) {
+      if (parsed.medications) {
+        const currentMeds = patient.medications || [];
+        patient.medications = Array.from(new Set([...currentMeds, ...parsed.medications]));
+      }
+      if (parsed.conditions) {
+        const currentConditions = patient.conditions || [];
+        const normalizedNewConditions = parsed.conditions.map((c: string) => {
+          const lower = c.toLowerCase();
+          return ONTOLOGY_CONDITIONS[lower] || c;
+        });
+        patient.conditions = Array.from(new Set([...currentConditions, ...normalizedNewConditions]));
+      }
+      if (parsed.lab_results) {
+        const currentLabs = patient.lab_results || [];
+        const newLabs = parsed.lab_results.map((l: any) => ({ ...l, date: new Date().toISOString() }));
+        patient.lab_results = [...currentLabs, ...newLabs];
+      }
+    }
+
+    return newPrescription;
+  }
+
+  async hospitalRetrieve(hospital_id: string, patient_id: string): Promise<RetrievalResult> {
+    const trace: string[] = [];
+    const graph = new RDFGraph();
+    
+    trace.push(`[System] Initializing RDF Knowledge Graph for ${patient_id}`);
+
+    this.logs.push({
+      timestamp: new Date().toISOString(),
+      hospital_id,
+      action: 'DATA_RETRIEVAL_EMERGENCY',
+      patient_id
+    });
+
+    // 1. Load Ontology into RDF Graph
+    Object.entries(ONTOLOGY_CONDITIONS).forEach(([syn, can]) => {
+      const synNode = `snomed:${syn.replace(/\s+/g, '_').toLowerCase()}`;
+      const canNode = `snomed:${can.replace(/\s+/g, '_').toLowerCase()}`;
+      graph.add(synNode, 'owl:sameAs', canNode);
+      graph.add(canNode, 'rdfs:label', can); // Raw label for display
+    });
+    Object.entries(ONTOLOGY_ALLERGIES).forEach(([syn, can]) => {
+      const synNode = `rxnorm:${syn.replace(/\s+/g, '_').toLowerCase()}`;
+      const canNode = `rxnorm:${can.replace(/\s+/g, '_').toLowerCase()}`;
+      graph.add(synNode, 'owl:sameAs', canNode);
+      graph.add(canNode, 'rdfs:label', can);
+    });
+    
+    trace.push(`[Ontology] Loaded semantic mapping triples (owl:sameAs).`);
+
+    // 2. Fetch disparate data and assert as Triples
+    const rawTerms: { term: string; type: string; source: string }[] = [];
+    Object.entries(MOCK_HOSPITAL_DATA).forEach(([h_id, records]) => {
+      const hospitalRecords = records.filter(r => r.patient_id === patient_id);
+      hospitalRecords.forEach(r => {
+        rawTerms.push({ term: r.term, type: r.type, source: h_id });
+      });
+    });
+
+    if (patient_id === 'PAT-DEMO') {
+      trace.push(`[NLP-Agent] Found high-fidelity demo records.`);
+      rawTerms.push({ term: 'HTN', type: 'condition', source: 'HOSP-DEMO' });
+    }
+
+    const patientNode = `patient:${patient_id}`;
+    
+    // Add existing patient conditions/meds to graph
+    const patient = this.getPatient(patient_id);
+    if (patient?.conditions) {
+       patient.conditions.forEach(c => {
+         graph.add(patientNode, 'scke:hasCondition', `snomed:${c.replace(/\s+/g, '_').toLowerCase()}`);
+       });
+    }
+
+    rawTerms.forEach(({ term, type, source }) => {
+      const prefix = type === 'condition' ? 'snomed:' : 'rxnorm:';
+      const termNode = `${prefix}${term.replace(/\s+/g, '_').toLowerCase()}`;
+      const predicate = type === 'condition' ? 'scke:hasCondition' : 'scke:hasAllergy';
+      
+      graph.add(patientNode, predicate, termNode);
+      trace.push(`[Data] Asserted: ${patientNode} ${predicate} ${termNode} (source: ${source})`);
+    });
+
+    // 3. RDF Inference Engine
+    trace.push(`[Reasoner] Executing semantic inference...`);
+    
+    const conditions = new Set<string>();
+    const confirmedAllergies = new Set<string>();
+    const medications = new Set<string>();
+    
+    if (patient?.medications) patient.medications.forEach(m => medications.add(m));
+
+    // Infer Conditions
+    const conditionTriples = graph.match(patientNode, 'scke:hasCondition');
+    conditionTriples.forEach(t => {
+      const mappings = graph.match(t.object, 'owl:sameAs');
+      if (mappings.length > 0) {
+        const canonicalNode = mappings[0].object;
+        const labelTriples = graph.match(canonicalNode, 'rdfs:label');
+        if (labelTriples.length > 0) {
+          conditions.add(labelTriples[0].object);
+          trace.push(`[Inference] Matched: ${t.object} -> owl:sameAs -> ${canonicalNode} ("${labelTriples[0].object}")`);
+        }
+      } else {
+        // Fallback if no ontology mapping exists
+        const fallbackLabel = t.object.replace('snomed:', '').replace(/_/g, ' ');
+        conditions.add(fallbackLabel);
+      }
+    });
+
+    // Infer Allergies
+    const allergyTriples = graph.match(patientNode, 'scke:hasAllergy');
+    allergyTriples.forEach(t => {
+      const mappings = graph.match(t.object, 'owl:sameAs');
+      if (mappings.length > 0) {
+        const canonicalNode = mappings[0].object;
+        const labelTriples = graph.match(canonicalNode, 'rdfs:label');
+        if (labelTriples.length > 0) {
+          confirmedAllergies.add(labelTriples[0].object);
+          trace.push(`[Inference] Matched: ${t.object} -> owl:sameAs -> ${canonicalNode} ("${labelTriples[0].object}")`);
+        }
+      } else {
+        const fallbackLabel = t.object.replace('rxnorm:', '').replace(/_/g, ' ');
+        confirmedAllergies.add(fallbackLabel);
+      }
+    });
+
+    let score = 0.6 + (conditions.size * 0.05) + (confirmedAllergies.size * 0.1);
+    
+    return {
+      patient_id,
+      conditions: Array.from(conditions),
+      allergies_confirmed: Array.from(confirmedAllergies),
+      medications: Array.from(medications),
+      confidence_score: Math.min(0.95, score),
+      trace
+    };
+  }
+}
+
+export const scke = new SCKEService();
