@@ -40,6 +40,25 @@ class PatientCreate(BaseModel):
     national_id: str
     id_type: str  # "Aadhar" or "Blockchain"
 
+class PatientRead(BaseModel):
+    id: str
+    name: str
+    age: int
+    gender: Optional[str] = None
+    blood_type: Optional[str] = None
+    phone: Optional[str] = None
+    unique_id: Optional[str] = None
+    id_type: Optional[str] = None
+    medications: list[str] = []
+    conditions: list[str] = []
+    lab_results: list[dict] = []
+
+
+class RegisterResponse(BaseModel):
+    id: str
+    name: str
+    secure_key: str
+
 class PatientLogin(BaseModel):
     patient_id: str
     secure_key: str
