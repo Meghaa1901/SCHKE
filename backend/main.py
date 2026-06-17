@@ -7,9 +7,10 @@ from sqlmodel import Session, select
 from database import get_session
 from models import (
     Hospital, Patient, PatientCreate, PatientLogin, RetrieveRequest, AccessLog,
-    PatientRead, RegisterResponse, RetrievalResult,
+    PatientRead, RegisterResponse, RetrievalResult,AssistantRequest, ClinicalAssessment
 )
 from retrieval import retrieve, ONTOLOGY, ontology_triples
+from ai import clinical_assistant
 
 app = FastAPI(title="SCKE API")
 
@@ -89,3 +90,15 @@ def get_ontology():
         "allergies": ONTOLOGY["allergies"],
         "triples": ontology_triples(),
     }
+
+@app.post("/ai/assistant", response_model=ClinicalAssessment)
+def ai_assistant(data: AssistantRequest, session: Session = Depends(get_session)):
+    context = ""
+    if data.patient_id:
+        patient = session.get(Patient, data.patient_id)
+        if patient:
+            context = f"Age {patient.age}; known conditions: {patient.conditions}; current medications: {patient.medications}"
+    try:
+        return clinical_assistant(data.symptoms, context)
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"AI service error: {e}")

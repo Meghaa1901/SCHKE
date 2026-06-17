@@ -99,3 +99,19 @@ class RetrievalResult(BaseModel):
 class RetrieveRequest(BaseModel):
     hospital_id: str
     patient_id: str
+
+class PossibleCondition(BaseModel):
+    name: str
+    reasoning: str
+
+
+class ClinicalAssessment(BaseModel):
+    summary: str
+    possible_conditions: list[PossibleCondition]
+    suggested_next_steps: list[str]
+    disclaimer: str
+
+
+class AssistantRequest(BaseModel):
+    symptoms: str
+    patient_id: Optional[str] = None
