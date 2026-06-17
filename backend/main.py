@@ -5,8 +5,8 @@ import hashlib
 from fastapi import FastAPI, Depends, HTTPException
 from sqlmodel import Session, select
 from database import get_session
-from models import Hospital, Patient, PatientCreate, PatientLogin,RetrieveRequest
-from retrieval import retrieve
+from models import Hospital, Patient, PatientCreate, PatientLogin, RetrieveRequest, AccessLog
+from retrieval import retrieve, ONTOLOGY, ontology_triples
 
 app = FastAPI(title="SCKE API")
 
@@ -70,3 +70,17 @@ def login_patient(data: PatientLogin, session: Session = Depends(get_session)):
 @app.post("/exchange/retrieve")
 def exchange_retrieve(data: RetrieveRequest, session: Session = Depends(get_session)):
     return retrieve(session, data.hospital_id, data.patient_id)
+
+@app.get("/logs")
+def get_logs(session: Session = Depends(get_session)):
+    logs = session.exec(select(AccessLog)).all()
+    return sorted(logs, key=lambda log: log.timestamp, reverse=True)  # newest first
+
+
+@app.get("/ontology")
+def get_ontology():
+    return {
+        "conditions": ONTOLOGY["conditions"],
+        "allergies": ONTOLOGY["allergies"],
+        "triples": ontology_triples(),
+    }

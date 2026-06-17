@@ -109,3 +109,11 @@ def retrieve(session: Session, hospital_id: str, patient_id: str) -> RetrievalRe
         confidence_score=round(confidence, 2),
         trace=trace,
     )
+def ontology_triples():
+    """Return the ontology as a flat list of RDF triples (for the Ontology Map screen)."""
+    triples = []
+    for syn, canon in ONTOLOGY["conditions"].items():
+        triples.append({"subject": f"snomed:{_node(syn)}", "predicate": "owl:sameAs", "object": f"snomed:{_node(canon)}"})
+    for syn, canon in ONTOLOGY["allergies"].items():
+        triples.append({"subject": f"rxnorm:{_node(syn)}", "predicate": "owl:sameAs", "object": f"rxnorm:{_node(canon)}"})
+    return triples
