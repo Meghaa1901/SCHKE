@@ -34,6 +34,16 @@ class Patient(SQLModel, table=True):
     conditions: list[str] = Field(default_factory=list, sa_column=Column(JSON))
     lab_results: list[dict] = Field(default_factory=list, sa_column=Column(JSON))
 
+class PatientCreate(BaseModel):
+    name: str
+    age: int
+    national_id: str
+    id_type: str  # "Aadhar" or "Blockchain"
+
+class PatientLogin(BaseModel):
+    patient_id: str
+    secure_key: str
+
 class Prescription(SQLModel, table=True):
     id: str = Field(primary_key=True)
     patient_id: str
