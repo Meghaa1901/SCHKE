@@ -5,7 +5,8 @@ import hashlib
 from fastapi import FastAPI, Depends, HTTPException
 from sqlmodel import Session, select
 from database import get_session
-from models import Hospital, Patient, PatientCreate, PatientLogin
+from models import Hospital, Patient, PatientCreate, PatientLogin,RetrieveRequest
+from retrieval import retrieve
 
 app = FastAPI(title="SCKE API")
 
@@ -65,3 +66,7 @@ def login_patient(data: PatientLogin, session: Session = Depends(get_session)):
     if not patient or patient.secure_key != data.secure_key:
         raise HTTPException(status_code=401, detail="Invalid patient ID or secure key")
     return patient
+
+@app.post("/exchange/retrieve")
+def exchange_retrieve(data: RetrieveRequest, session: Session = Depends(get_session)):
+    return retrieve(session, data.hospital_id, data.patient_id)

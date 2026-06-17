@@ -76,3 +76,7 @@ class RetrievalResult(BaseModel):
     medications: list[str] = []
     confidence_score: float
     trace: list[str] = []
+
+class RetrieveRequest(BaseModel):
+    hospital_id: str
+    patient_id: str
