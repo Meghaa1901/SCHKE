@@ -62,6 +62,13 @@ class AccessLog(SQLModel, table=True):
     patient_id: str
     details: Optional[str] = None
 
+class HospitalRecord(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    hospital_id: str
+    patient_id: str
+    term: str
+    type: str  # "condition" or "allergy"
+
 class RetrievalResult(BaseModel):
     patient_id: str
     conditions: list[str] = []

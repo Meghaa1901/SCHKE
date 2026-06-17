@@ -1,0 +1,42 @@
+{
+  "conditions": {
+    "diabetes mellitus": "Diabetes",
+    "sugar disease": "Diabetes",
+    "t2d": "Diabetes",
+    "a1c": "Diabetes",
+    "diabetes": "Diabetes",
+    "htn": "Hypertension",
+    "high blood pressure": "Hypertension",
+    "hypertension": "Hypertension",
+    "stroke": "Stroke",
+    "tia": "Stroke",
+    "cerebral infarction": "Stroke",
+    "neuro": "Stroke",
+    "cad": "Coronary Artery Disease",
+    "heart attack": "Coronary Artery Disease",
+    "mi": "Coronary Artery Disease",
+    "cardio": "Coronary Artery Disease",
+    "ckd": "Chronic Kidney Disease",
+    "kidney failure": "Chronic Kidney Disease",
+    "asthma": "Asthma",
+    "copd": "COPD",
+    "hyperlipidemia": "High Cholesterol",
+    "hld": "High Cholesterol",
+    "high cholesterol": "High Cholesterol",
+    "gerd": "Acid Reflux",
+    "acid reflux": "Acid Reflux",
+    "heartburn": "Acid Reflux",
+    "hypothyroidism": "Hypothyroidism",
+    "underactive thyroid": "Hypothyroidism",
+    "oa": "Osteoarthritis",
+    "arthritis": "Osteoarthritis"
+  },
+  "allergies": {
+    "penicillin": "Penicillin Allergy",
+    "pcn": "Penicillin Allergy",
+    "sulfa": "Sulfa Allergy",
+    "shellfish": "Shellfish Allergy",
+    "peanuts": "Peanut Allergy",
+    "latex": "Latex Allergy"
+  }
+}
