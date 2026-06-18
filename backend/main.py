@@ -1,6 +1,7 @@
 import random
 import string
 import hashlib
+from fastapi.middleware.cors import CORSMiddleware
 
 from fastapi import FastAPI, Depends, HTTPException
 from sqlmodel import Session, select
@@ -13,6 +14,13 @@ from retrieval import retrieve, ONTOLOGY, ontology_triples
 from ai import clinical_assistant
 
 app = FastAPI(title="SCKE API")
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 @app.get("/")
