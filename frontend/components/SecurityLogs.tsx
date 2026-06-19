@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { scke } from '../services/sckeService';
 import { AccessLog } from '../types';
@@ -11,7 +10,7 @@ const SecurityLogs: React.FC<SecurityLogsProps> = ({ hospitalId }) => {
   const [logs, setLogs] = useState<AccessLog[]>([]);
 
   useEffect(() => {
-    setLogs(scke.getHospitalLogs(hospitalId));
+    scke.getHospitalLogs(hospitalId).then(setLogs);
   }, [hospitalId]);
 
   return (

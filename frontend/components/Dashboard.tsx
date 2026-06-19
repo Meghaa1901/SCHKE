@@ -1,16 +1,22 @@
-
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { HOSPITALS } from '../constants';
 import { scke } from '../services/sckeService';
 import { federatedService } from '../services/federatedService';
+import { AccessLog } from '../types';
 
 interface DashboardProps {
   hospitalId?: string;
 }
 
 const Dashboard: React.FC<DashboardProps> = ({ hospitalId }) => {
-  const logs = hospitalId ? scke.getHospitalLogs(hospitalId).slice(-5).reverse() : [];
+  const [logs, setLogs] = useState<AccessLog[]>([]);
+
+  useEffect(() => {
+    if (hospitalId) {
+      scke.getHospitalLogs(hospitalId).then(all => setLogs(all.slice(-5).reverse()));
+    }
+  }, [hospitalId]);
   
   const stats = [
     { label: 'Connected Nodes', value: federatedService.getNodes().length.toString(), icon: 'fa-network-wired', color: 'text-blue-400', border: 'border-blue-500/20', bg: 'bg-blue-500/10', shadow: 'shadow-blue-500/20' },

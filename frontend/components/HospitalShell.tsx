@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import Navigation from './Navigation';
 import Dashboard from './Dashboard';
@@ -8,7 +7,7 @@ import OntologyMap from './OntologyMap';
 import FederatedDashboard from './FederatedDashboard';
 import UpdateRecords from './UpdateRecords';
 import SecurityLogs from './SecurityLogs';
-import AIDiagnosisHub from './AIDiagnosisHub';
+import AIAssistant from './AIAssistant';
 
 interface HospitalShellProps {
   hospitalId: string;
@@ -30,7 +29,7 @@ const HospitalShell: React.FC<HospitalShellProps> = ({ hospitalId }) => {
       case 'ontology':
         return <OntologyMap />;
       case 'diagnosis':
-        return <AIDiagnosisHub />;
+        return <AIAssistant />;
       case 'federated':
         return <FederatedDashboard />;
       case 'logs':

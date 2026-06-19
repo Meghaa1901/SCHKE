@@ -194,8 +194,14 @@ class SCKEService {
     return this.logs.filter(l => l.patient_id === patient_id);
   }
 
-  getHospitalLogs(hospital_id: string): AccessLog[] {
-    return this.logs.filter(l => l.hospital_id === hospital_id || l.details?.includes(hospital_id));
+  async getHospitalLogs(hospital_id: string): Promise<AccessLog[]> {
+    // Fetch all audit logs from the backend, then keep the ones relevant to this hospital.
+    const res = await fetch(`${API_BASE}/logs`);
+    if (!res.ok) {
+      return [];
+    }
+    const logs: AccessLog[] = await res.json();
+    return logs.filter(l => l.hospital_id === hospital_id || (l.details ? l.details.includes(hospital_id) : false));
   }
 
   // Expose the core ontology as an RDF Graph for UI visualization
@@ -327,6 +333,19 @@ class SCKEService {
     }
 
     return newPrescription;
+  }
+
+  async aiAssistant(symptoms: string, patient_id?: string): Promise<any> {
+    // Calls the real Gemini-powered assistant on the FastAPI backend.
+    const res = await fetch(`${API_BASE}/ai/assistant`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ symptoms, patient_id: patient_id || null }),
+    });
+    if (!res.ok) {
+      throw new Error('AI assistant request failed');
+    }
+    return await res.json();
   }
 
   async hospitalRetrieve(hospital_id: string, patient_id: string): Promise<RetrievalResult> {
