@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { scke } from '../services/sckeService';
 import { Patient, Prescription } from '../types';
@@ -15,11 +14,11 @@ const UpdateRecords: React.FC<UpdateRecordsProps> = ({ hospitalId }) => {
   const [uploadResult, setUploadResult] = useState<Prescription | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const handleSearch = (e: React.FormEvent) => {
+  const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSearching(true);
     setError(null);
-    const found = scke.getPatient(patientId);
+    const found = await scke.getPatient(patientId);
     if (found) {
       setPatient(found);
     } else {
@@ -45,7 +44,7 @@ const UpdateRecords: React.FC<UpdateRecordsProps> = ({ hospitalId }) => {
           const result = await scke.processPrescription(hospitalId, patient.id, base64);
           setUploadResult(result);
           // Refresh patient data to show updated conditions/meds
-          setPatient(scke.getPatient(patient.id) || null);
+          setPatient((await scke.getPatient(patient.id)) || null);
         } catch (err) {
           setError('AI Analysis failed. Please ensure the image is clear.');
         } finally {

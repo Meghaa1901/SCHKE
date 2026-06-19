@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { scke } from '../services/sckeService';
 import { Patient } from '../types';
@@ -14,9 +13,9 @@ const RegisterPatient: React.FC = () => {
   });
   const [result, setResult] = useState<Patient | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const patient = scke.registerPatient(formData.name, formData.age, formData.national_id, formData.id_type);
+    const patient = await scke.registerPatient(formData.name, formData.age, formData.national_id, formData.id_type);
     setResult(patient);
     setFormData({ name: '', age: 0, national_id: '', id_type: 'Aadhar', notes: '', files: null });
   };

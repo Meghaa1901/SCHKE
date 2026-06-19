@@ -125,27 +125,41 @@ class SCKEService {
     { timestamp: new Date(Date.now() - 172800000).toISOString(), hospital_id: 'HOSP-01', action: 'FEDERATED_MODEL_UPDATE', patient_id: 'SYSTEM', details: 'Local weights contributed to global model v1.4' },
   ];
 
-  registerPatient(name: string, age: number, unique_id: string, id_type: 'Aadhar' | 'Blockchain'): Patient {
-    const id = `PAT-${Math.floor(10000 + Math.random() * 90000)}`;
-    const secure_key = `SCKE-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
-    const newPatient: Patient = { 
-      id, 
-      name, 
-      age, 
-      national_id_hash: `sha-${Math.random().toString(36).substring(7)}`,
+  async registerPatient(name: string, age: number, unique_id: string, id_type: 'Aadhar' | 'Blockchain'): Promise<Patient> {
+    // Saves the new patient in the FastAPI backend / database.
+    const res = await fetch(`${API_BASE}/patients`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, age, national_id: unique_id, id_type }),
+    });
+    if (!res.ok) {
+      throw new Error('Registration failed');
+    }
+    const data = await res.json(); // { id, name, secure_key }
+    return {
+      id: data.id,
+      name: data.name,
+      age,
+      national_id_hash: '',
       unique_id,
       id_type,
-      secure_key,
-      password: secure_key, // For legacy compatibility
+      secure_key: data.secure_key,
       medications: [],
-      conditions: []
+      conditions: [],
     };
-    this.patients.push(newPatient);
-    return newPatient;
   }
 
-  validatePatient(patId: string, secure_key: string): Patient | undefined {
-    return this.patients.find(p => p.id === patId && p.secure_key === secure_key);
+  async validatePatient(patId: string, secure_key: string): Promise<Patient | undefined> {
+    // Checks credentials against the FastAPI backend.
+    const res = await fetch(`${API_BASE}/auth/patient`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ patient_id: patId, secure_key }),
+    });
+    if (!res.ok) {
+      return undefined; // 401 = wrong ID or key
+    }
+    return await res.json();
   }
 
   registerHospital(name: string, style: string, managedBy?: string): Hospital {
@@ -163,8 +177,13 @@ class SCKEService {
     return this.hospitals.find(h => h.id === id);
   }
 
-  getPatient(id: string): Patient | undefined {
-    return this.patients.find(p => p.id === id);
+  async getPatient(id: string): Promise<Patient | undefined> {
+    // Fetch a patient from the FastAPI backend.
+    const res = await fetch(`${API_BASE}/patients/${id}`);
+    if (!res.ok) {
+      return undefined; // 404 = no such patient
+    }
+    return await res.json();
   }
 
   getPrescriptions(patient_id: string): Prescription[] {
@@ -286,7 +305,7 @@ class SCKEService {
       patient_id
     });
 
-    const patient = this.getPatient(patient_id);
+    const patient = await this.getPatient(patient_id);
     if (patient) {
       if (parsed.medications) {
         const currentMeds = patient.medications || [];

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { scke } from '../services/sckeService';
 import { PortalType } from '../types';
@@ -27,7 +26,7 @@ const Login: React.FC<LoginProps> = ({ portal, onLogin, onBack }) => {
   const [generatedKey, setGeneratedKey] = useState('');
   const [isHospital] = useState(portal === 'HOSPITAL');
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
@@ -43,7 +42,7 @@ const Login: React.FC<LoginProps> = ({ portal, onLogin, onBack }) => {
         setError('Invalid PAT-ID format. (Expected: PAT-XXXXX)');
         return;
       }
-      const patient = scke.validatePatient(patId, secureKey);
+      const patient = await scke.validatePatient(patId, secureKey);
       if (patient) {
         onLogin(patient);
       } else {
@@ -52,7 +51,7 @@ const Login: React.FC<LoginProps> = ({ portal, onLogin, onBack }) => {
     }
   };
 
-  const handleRegister = (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     
@@ -72,7 +71,7 @@ const Login: React.FC<LoginProps> = ({ portal, onLogin, onBack }) => {
     }
 
     try {
-      const patient = scke.registerPatient(regName, regAge, regUniqueId, regIdType);
+      const patient = await scke.registerPatient(regName, regAge, regUniqueId, regIdType);
       setGeneratedPatId(patient.id);
       setGeneratedKey(patient.secure_key || '');
       setPatId(patient.id);
@@ -82,7 +81,7 @@ const Login: React.FC<LoginProps> = ({ portal, onLogin, onBack }) => {
     }
   };
 
-  const handleDemo = () => {
+  const handleDemo = async () => {
     const demoId = isHospital ? 'HOSP-DEMO' : 'PAT-DEMO';
     const demoKey = isHospital ? '' : 'DEMO-123';
     
@@ -90,7 +89,7 @@ const Login: React.FC<LoginProps> = ({ portal, onLogin, onBack }) => {
       const hospital = scke.getHospital(demoId);
       onLogin(hospital);
     } else {
-      const patient = scke.validatePatient(demoId, demoKey);
+      const patient = await scke.validatePatient(demoId, demoKey);
       onLogin(patient);
     }
   };

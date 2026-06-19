@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { scke } from '../services/sckeService';
 import { federatedService, DiagnosticPrediction } from '../services/federatedService';
@@ -28,8 +27,8 @@ const PatientPortal: React.FC<PatientPortalProps> = ({ patientId }) => {
     refreshData();
   }, [patientId]);
 
-  const refreshData = () => {
-    const p = scke.getPatient(patientId);
+  const refreshData = async () => {
+    const p = await scke.getPatient(patientId);
     if (p) {
       setPatient({ ...p });
       setPrescriptions(scke.getPrescriptions(patientId));
