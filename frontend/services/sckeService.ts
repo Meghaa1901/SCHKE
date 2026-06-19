@@ -1,4 +1,3 @@
-
 import { GoogleGenAI, Type } from "@google/genai";
 import { Patient, RetrievalResult, AccessLog, Prescription, Hospital, RDFTriple } from '../types';
 import { 
@@ -7,6 +6,8 @@ import {
   MOCK_HOSPITAL_DATA, 
   MOCK_CLINICAL_NOTES 
 } from '../constants';
+
+const API_BASE = "http://localhost:8000";
 
 // Minimal in-memory RDF Graph for Semantic Reasoning
 class RDFGraph {
@@ -310,121 +311,16 @@ class SCKEService {
   }
 
   async hospitalRetrieve(hospital_id: string, patient_id: string): Promise<RetrievalResult> {
-    const trace: string[] = [];
-    const graph = new RDFGraph();
-    
-    trace.push(`[System] Initializing RDF Knowledge Graph for ${patient_id}`);
-
-    this.logs.push({
-      timestamp: new Date().toISOString(),
-      hospital_id,
-      action: 'DATA_RETRIEVAL_EMERGENCY',
-      patient_id
+    // Calls the real FastAPI backend instead of doing the work in the browser.
+    const res = await fetch(`${API_BASE}/exchange/retrieve`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ hospital_id, patient_id }),
     });
-
-    // 1. Load Ontology into RDF Graph
-    Object.entries(ONTOLOGY_CONDITIONS).forEach(([syn, can]) => {
-      const synNode = `snomed:${syn.replace(/\s+/g, '_').toLowerCase()}`;
-      const canNode = `snomed:${can.replace(/\s+/g, '_').toLowerCase()}`;
-      graph.add(synNode, 'owl:sameAs', canNode);
-      graph.add(canNode, 'rdfs:label', can); // Raw label for display
-    });
-    Object.entries(ONTOLOGY_ALLERGIES).forEach(([syn, can]) => {
-      const synNode = `rxnorm:${syn.replace(/\s+/g, '_').toLowerCase()}`;
-      const canNode = `rxnorm:${can.replace(/\s+/g, '_').toLowerCase()}`;
-      graph.add(synNode, 'owl:sameAs', canNode);
-      graph.add(canNode, 'rdfs:label', can);
-    });
-    
-    trace.push(`[Ontology] Loaded semantic mapping triples (owl:sameAs).`);
-
-    // 2. Fetch disparate data and assert as Triples
-    const rawTerms: { term: string; type: string; source: string }[] = [];
-    Object.entries(MOCK_HOSPITAL_DATA).forEach(([h_id, records]) => {
-      const hospitalRecords = records.filter(r => r.patient_id === patient_id);
-      hospitalRecords.forEach(r => {
-        rawTerms.push({ term: r.term, type: r.type, source: h_id });
-      });
-    });
-
-    if (patient_id === 'PAT-DEMO') {
-      trace.push(`[NLP-Agent] Found high-fidelity demo records.`);
-      rawTerms.push({ term: 'HTN', type: 'condition', source: 'HOSP-DEMO' });
+    if (!res.ok) {
+      throw new Error('Retrieval failed');
     }
-
-    const patientNode = `patient:${patient_id}`;
-    
-    // Add existing patient conditions/meds to graph
-    const patient = this.getPatient(patient_id);
-    if (patient?.conditions) {
-       patient.conditions.forEach(c => {
-         graph.add(patientNode, 'scke:hasCondition', `snomed:${c.replace(/\s+/g, '_').toLowerCase()}`);
-       });
-    }
-
-    rawTerms.forEach(({ term, type, source }) => {
-      const prefix = type === 'condition' ? 'snomed:' : 'rxnorm:';
-      const termNode = `${prefix}${term.replace(/\s+/g, '_').toLowerCase()}`;
-      const predicate = type === 'condition' ? 'scke:hasCondition' : 'scke:hasAllergy';
-      
-      graph.add(patientNode, predicate, termNode);
-      trace.push(`[Data] Asserted: ${patientNode} ${predicate} ${termNode} (source: ${source})`);
-    });
-
-    // 3. RDF Inference Engine
-    trace.push(`[Reasoner] Executing semantic inference...`);
-    
-    const conditions = new Set<string>();
-    const confirmedAllergies = new Set<string>();
-    const medications = new Set<string>();
-    
-    if (patient?.medications) patient.medications.forEach(m => medications.add(m));
-
-    // Infer Conditions
-    const conditionTriples = graph.match(patientNode, 'scke:hasCondition');
-    conditionTriples.forEach(t => {
-      const mappings = graph.match(t.object, 'owl:sameAs');
-      if (mappings.length > 0) {
-        const canonicalNode = mappings[0].object;
-        const labelTriples = graph.match(canonicalNode, 'rdfs:label');
-        if (labelTriples.length > 0) {
-          conditions.add(labelTriples[0].object);
-          trace.push(`[Inference] Matched: ${t.object} -> owl:sameAs -> ${canonicalNode} ("${labelTriples[0].object}")`);
-        }
-      } else {
-        // Fallback if no ontology mapping exists
-        const fallbackLabel = t.object.replace('snomed:', '').replace(/_/g, ' ');
-        conditions.add(fallbackLabel);
-      }
-    });
-
-    // Infer Allergies
-    const allergyTriples = graph.match(patientNode, 'scke:hasAllergy');
-    allergyTriples.forEach(t => {
-      const mappings = graph.match(t.object, 'owl:sameAs');
-      if (mappings.length > 0) {
-        const canonicalNode = mappings[0].object;
-        const labelTriples = graph.match(canonicalNode, 'rdfs:label');
-        if (labelTriples.length > 0) {
-          confirmedAllergies.add(labelTriples[0].object);
-          trace.push(`[Inference] Matched: ${t.object} -> owl:sameAs -> ${canonicalNode} ("${labelTriples[0].object}")`);
-        }
-      } else {
-        const fallbackLabel = t.object.replace('rxnorm:', '').replace(/_/g, ' ');
-        confirmedAllergies.add(fallbackLabel);
-      }
-    });
-
-    let score = 0.6 + (conditions.size * 0.05) + (confirmedAllergies.size * 0.1);
-    
-    return {
-      patient_id,
-      conditions: Array.from(conditions),
-      allergies_confirmed: Array.from(confirmedAllergies),
-      medications: Array.from(medications),
-      confidence_score: Math.min(0.95, score),
-      trace
-    };
+    return await res.json();
   }
 }
 
