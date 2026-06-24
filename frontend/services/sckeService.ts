@@ -1,10 +1,5 @@
 import { Patient, RetrievalResult, AccessLog, Prescription, Hospital, RDFTriple } from '../types';
-import { 
-  ONTOLOGY_CONDITIONS, 
-  ONTOLOGY_ALLERGIES, 
-  MOCK_HOSPITAL_DATA, 
-  MOCK_CLINICAL_NOTES 
-} from '../constants';
+import { ONTOLOGY_CONDITIONS } from '../constants';
 
 const API_BASE = "http://localhost:8000";
 
