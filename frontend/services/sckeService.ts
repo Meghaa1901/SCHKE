@@ -1,4 +1,3 @@
-import { GoogleGenAI, Type } from "@google/genai";
 import { Patient, RetrievalResult, AccessLog, Prescription, Hospital, RDFTriple } from '../types';
 import { 
   ONTOLOGY_CONDITIONS, 
@@ -217,122 +216,21 @@ class SCKEService {
   }
 
   async processPrescription(source_id: string, patient_id: string, base64Image: string): Promise<Prescription> {
-    let jsonStr = "{}";
-    
-    try {
-      // Initialize AI inside the function to ensure process.env.API_KEY is loaded
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-      
-      // Dynamically extract the MIME type (e.g., image/png, image/jpeg, image/webp)
-      const mimeTypeMatch = base64Image.match(/^data:(.*?);base64,/);
-      const mimeType = mimeTypeMatch ? mimeTypeMatch[1] : 'image/jpeg';
-      const data = base64Image.includes(',') ? base64Image.split(',')[1] : base64Image;
-
-      const response = await ai.models.generateContent({
-        model: 'gemini-3-flash-preview',
-        contents: {
-          parts: [
-            {
-              inlineData: {
-                data: data,
-                mimeType: mimeType
-              }
-            },
-            {
-              text: `Act as a medical multi-agent system. Analyze this clinical document (prescription or lab report). 
-              Extract:
-              1. Diagnosed Conditions (Formal medical terms)
-              2. Prescribed Medications (name and dosage)
-              3. Lab Results (test name, value, unit, reference range, and status like normal/abnormal)
-              4. A "Patient Plain-English" explanation. Translate complex medical terms into simple concepts. 
-              Example: Hyperlipidemia -> High cholesterol. Hypertension -> High Blood Pressure.
-              Return JSON only.`
-            }
-          ]
-        },
-        config: {
-          responseMimeType: "application/json",
-          responseSchema: {
-            type: Type.OBJECT,
-            properties: {
-              conditions: { type: Type.ARRAY, items: { type: Type.STRING } },
-              medications: { type: Type.ARRAY, items: { type: Type.STRING } },
-              lab_results: { 
-                type: Type.ARRAY, 
-                items: { 
-                  type: Type.OBJECT,
-                  properties: {
-                    test_name: { type: Type.STRING },
-                    value: { type: Type.STRING },
-                    unit: { type: Type.STRING },
-                    reference_range: { type: Type.STRING },
-                    status: { type: Type.STRING, enum: ["normal", "abnormal", "critical"] }
-                  },
-                  required: ["test_name", "value", "unit"]
-                }
-              },
-              explanation: { type: Type.STRING }
-            },
-            required: ["conditions", "medications", "explanation"]
-          }
-        }
-      });
-      
-      jsonStr = response.text || "{}";
-    } catch (error) {
-      console.error("Gemini API Error details:", error);
-      throw error;
-    }
-
-    let parsed;
-    try {
-      parsed = JSON.parse(jsonStr);
-    } catch (e) {
-      parsed = { conditions: [], medications: [], lab_results: [], explanation: "SYSTEM ERROR: Could not parse medical handwriting." };
-    }
-
-    const newPrescription: Prescription = {
-      id: `RX-${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
-      patient_id,
-      hospital_id: source_id,
-      date: new Date().toISOString(),
-      raw_content: jsonStr,
-      ai_explanation: parsed.explanation,
-      extracted_terms: [...(parsed.conditions || []), ...(parsed.medications || [])],
-      extracted_labs: (parsed.lab_results || []).map((l: any) => ({ ...l, date: new Date().toISOString() }))
-    };
-
-    this.prescriptions.push(newPrescription);
-    
-    this.logs.push({
-      timestamp: new Date().toISOString(),
-      hospital_id: source_id,
-      action: 'CLINICAL_DOC_AI_ANALYSIS_SYNC',
-      patient_id
+    // Sends the image to the FastAPI backend, which runs Gemini vision server-side,
+    // normalizes the findings through the ontology, and saves everything to the database.
+    const res = await fetch(`${API_BASE}/prescription`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        hospital_id: source_id,
+        patient_id,
+        image_base64: base64Image,
+      }),
     });
-
-    const patient = await this.getPatient(patient_id);
-    if (patient) {
-      if (parsed.medications) {
-        const currentMeds = patient.medications || [];
-        patient.medications = Array.from(new Set([...currentMeds, ...parsed.medications]));
-      }
-      if (parsed.conditions) {
-        const currentConditions = patient.conditions || [];
-        const normalizedNewConditions = parsed.conditions.map((c: string) => {
-          const lower = c.toLowerCase();
-          return ONTOLOGY_CONDITIONS[lower] || c;
-        });
-        patient.conditions = Array.from(new Set([...currentConditions, ...normalizedNewConditions]));
-      }
-      if (parsed.lab_results) {
-        const currentLabs = patient.lab_results || [];
-        const newLabs = parsed.lab_results.map((l: any) => ({ ...l, date: new Date().toISOString() }));
-        patient.lab_results = [...currentLabs, ...newLabs];
-      }
+    if (!res.ok) {
+      throw new Error('Prescription analysis failed');
     }
-
-    return newPrescription;
+    return await res.json();
   }
 
   async aiAssistant(symptoms: string, patient_id?: string): Promise<any> {

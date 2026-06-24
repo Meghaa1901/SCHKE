@@ -1,6 +1,9 @@
 import random
 import string
 import hashlib
+import base64
+import re
+from datetime import datetime
 from fastapi.middleware.cors import CORSMiddleware
 
 from fastapi import FastAPI, Depends, HTTPException
@@ -8,10 +11,11 @@ from sqlmodel import Session, select
 from database import get_session
 from models import (
     Hospital, Patient, PatientCreate, PatientLogin, RetrieveRequest, AccessLog,
-    PatientRead, RegisterResponse, RetrievalResult,AssistantRequest, ClinicalAssessment
+    PatientRead, RegisterResponse, RetrievalResult, AssistantRequest, ClinicalAssessment,
+    Prescription, PrescriptionRequest,
 )
 from retrieval import retrieve, ONTOLOGY, ontology_triples
-from ai import clinical_assistant
+from ai import clinical_assistant, extract_prescription
 
 app = FastAPI(title="SCKE API")
 app.add_middleware(
@@ -110,3 +114,78 @@ def ai_assistant(data: AssistantRequest, session: Session = Depends(get_session)
         return clinical_assistant(data.symptoms, context)
     except Exception as e:
         raise HTTPException(status_code=502, detail=f"AI service error: {e}")
+
+
+# ---- helpers for the prescription endpoint ----
+
+def _decode_data_url(data_url: str):
+    """Turn the browser's 'data:image/png;base64,xxxx' string into raw bytes + mime type."""
+    match = re.match(r"^data:(?P<mime>.*?);base64,(?P<data>.*)$", data_url, re.DOTALL)
+    if match:
+        return base64.b64decode(match.group("data")), match.group("mime")
+    # No prefix? Assume it's already raw base64 of a JPEG.
+    return base64.b64decode(data_url), "image/jpeg"
+
+
+def _merge(existing, new):
+    """Add new items to a list without duplicates, keeping order."""
+    out = list(existing or [])
+    for item in new:
+        if item not in out:
+            out.append(item)
+    return out
+
+
+@app.post("/prescription", response_model=Prescription)
+def process_prescription(data: PrescriptionRequest, session: Session = Depends(get_session)):
+    patient = session.get(Patient, data.patient_id)
+    if not patient:
+        raise HTTPException(status_code=404, detail="Patient not found")
+
+    # 1. Decode the uploaded image and send it to Gemini vision.
+    try:
+        image_bytes, mime_type = _decode_data_url(data.image_base64)
+        extraction = extract_prescription(image_bytes, mime_type)
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"AI extraction failed: {e}")
+
+    # 2. Normalize conditions through the same ontology the retrieval engine uses
+    #    (e.g. "diabetes mellitus" -> "Diabetes"). Unknown terms are kept as-is.
+    normalized_conditions = [
+        ONTOLOGY["conditions"].get(c.strip().lower(), c) for c in extraction.conditions
+    ]
+
+    new_labs = [lab.model_dump() for lab in extraction.lab_results]
+
+    # 3. Merge findings into the patient's central profile and save.
+    patient.conditions = _merge(patient.conditions, normalized_conditions)
+    patient.medications = _merge(patient.medications, extraction.medications)
+    if new_labs:
+        patient.lab_results = (patient.lab_results or []) + new_labs
+    session.add(patient)
+
+    # 4. Save the prescription record itself.
+    rx = Prescription(
+        id=f"RX-{random.randint(10000, 99999)}",
+        patient_id=data.patient_id,
+        hospital_id=data.hospital_id,
+        date=datetime.now().isoformat(),
+        raw_content=extraction.model_dump_json(),
+        ai_explanation=extraction.explanation,
+        extracted_terms=normalized_conditions + list(extraction.medications),
+        extracted_labs=new_labs,
+    )
+    session.add(rx)
+
+    # 5. Write an audit log entry, like the other endpoints do.
+    session.add(AccessLog(
+        timestamp=datetime.now().isoformat(),
+        hospital_id=data.hospital_id,
+        action="CLINICAL_DOC_AI_ANALYSIS_SYNC",
+        patient_id=data.patient_id,
+        details="Vision AI extracted clinical markers from an uploaded document",
+    ))
+
+    session.commit()
+    session.refresh(rx)
+    return rx

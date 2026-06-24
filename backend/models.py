@@ -115,3 +115,27 @@ class ClinicalAssessment(BaseModel):
 class AssistantRequest(BaseModel):
     symptoms: str
     patient_id: Optional[str] = None
+
+
+# ---- Prescription vision feature ----
+
+class ExtractedLab(BaseModel):
+    test_name: str
+    value: str
+    unit: str
+    reference_range: Optional[str] = None
+    status: Optional[str] = None  # "normal" | "abnormal" | "critical"
+
+
+class PrescriptionExtraction(BaseModel):
+    # This is the exact shape we ask Gemini to fill in from the image.
+    conditions: list[str]
+    medications: list[str]
+    lab_results: list[ExtractedLab]
+    explanation: str
+
+
+class PrescriptionRequest(BaseModel):
+    hospital_id: str
+    patient_id: str
+    image_base64: str  # the data URL the browser sends (data:image/png;base64,....)
