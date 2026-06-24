@@ -3,7 +3,6 @@ import React, { useState } from 'react';
 import { Hospital, UserRound, ArrowRight, ShieldCheck, HeartPulse, Power, LogOut } from 'lucide-react';
 import { scke } from './services/sckeService';
 import { PortalType, Patient } from './types';
-import HospitalPortal from './components/HospitalPortal';
 import PatientPortal from './components/PatientPortal';
 import Login from './components/Login';
 import HospitalShell from './components/HospitalShell';
