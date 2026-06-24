@@ -180,12 +180,17 @@ class SCKEService {
     return await res.json();
   }
 
-  getPrescriptions(patient_id: string): Prescription[] {
-    return this.prescriptions.filter(p => p.patient_id === patient_id);
+   async getPrescriptions(patient_id: string): Promise<Prescription[]> {
+    const res = await fetch(`${API_BASE}/patients/${patient_id}/prescriptions`);
+    if (!res.ok) return [];
+    return await res.json();
   }
 
-  getAccessLogs(patient_id: string): AccessLog[] {
-    return this.logs.filter(l => l.patient_id === patient_id);
+   async getAccessLogs(patient_id: string): Promise<AccessLog[]> {
+    const res = await fetch(`${API_BASE}/logs`);
+    if (!res.ok) return [];
+    const logs: AccessLog[] = await res.json();
+    return logs.filter(l => l.patient_id === patient_id);
   }
 
   async getHospitalLogs(hospital_id: string): Promise<AccessLog[]> {

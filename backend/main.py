@@ -94,6 +94,13 @@ def get_logs(session: Session = Depends(get_session)):
     logs = session.exec(select(AccessLog)).all()
     return sorted(logs, key=lambda log: log.timestamp, reverse=True)
 
+@app.get("/patients/{patient_id}/prescriptions", response_model=list[Prescription])
+def get_patient_prescriptions(patient_id: str, session: Session = Depends(get_session)):
+    rows = session.exec(
+        select(Prescription).where(Prescription.patient_id == patient_id)
+    ).all()
+    return sorted(rows, key=lambda rx: rx.date)
+
 
 @app.get("/ontology")
 def get_ontology():

@@ -34,8 +34,7 @@ logs = [
               action="CLINICAL_DOC_AI_ANALYSIS_SYNC", patient_id="PAT-888999", details="Vision AI processing complete"),
     AccessLog(timestamp=(now - timedelta(days=1)).isoformat(), hospital_id="HOSP-03",
               action="DATA_RETRIEVAL_ROUTINE", patient_id="PAT-DEMO", details="Source: HOSP-01"),
-    AccessLog(timestamp=(now - timedelta(days=2)).isoformat(), hospital_id="HOSP-01",
-              action="FEDERATED_MODEL_UPDATE", patient_id="SYSTEM", details="Local weights contributed to global model v1.4"),
+   
 ]
 
 

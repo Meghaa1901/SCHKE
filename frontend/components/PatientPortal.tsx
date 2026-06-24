@@ -20,8 +20,8 @@ const PatientPortal: React.FC<PatientPortalProps> = ({ patientId }) => {
     const p = await scke.getPatient(patientId);
     if (p) {
       setPatient({ ...p });
-      setPrescriptions(scke.getPrescriptions(patientId));
-      setLogs(scke.getAccessLogs(patientId));
+      setPrescriptions(await scke.getPrescriptions(patientId));
+      setLogs(await scke.getAccessLogs(patientId));
     }
   };
 
