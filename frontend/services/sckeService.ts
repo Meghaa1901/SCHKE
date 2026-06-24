@@ -1,7 +1,7 @@
 import { Patient, RetrievalResult, AccessLog, Prescription, Hospital, RDFTriple } from '../types';
 import { ONTOLOGY_CONDITIONS } from '../constants';
 
-const API_BASE = "http://localhost:8000";
+const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:8000";
 
 // Minimal in-memory RDF Graph for Semantic Reasoning
 class RDFGraph {
