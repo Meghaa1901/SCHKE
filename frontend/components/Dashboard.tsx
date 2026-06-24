@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { HOSPITALS } from '../constants';
 import { scke } from '../services/sckeService';
-import { federatedService } from '../services/federatedService';
 import { AccessLog } from '../types';
 
 interface DashboardProps {
@@ -19,7 +18,7 @@ const Dashboard: React.FC<DashboardProps> = ({ hospitalId }) => {
   }, [hospitalId]);
   
   const stats = [
-    { label: 'Connected Nodes', value: federatedService.getNodes().length.toString(), icon: 'fa-network-wired', color: 'text-blue-400', border: 'border-blue-500/20', bg: 'bg-blue-500/10', shadow: 'shadow-blue-500/20' },
+    { label: 'Source Hospitals', value: HOSPITALS.length.toString(), icon: 'fa-network-wired', color: 'text-blue-400', border: 'border-blue-500/20', bg: 'bg-blue-500/10', shadow: 'shadow-blue-500/20' },
     { label: 'Total Patients', value: '2,842', icon: 'fa-users', color: 'text-emerald-400', border: 'border-emerald-500/20', bg: 'bg-emerald-500/10', shadow: 'shadow-emerald-500/20' },
     { label: 'Semantic Mappings', value: '156', icon: 'fa-project-diagram', color: 'text-purple-400', border: 'border-purple-500/20', bg: 'bg-purple-500/10', shadow: 'shadow-purple-500/20' },
     { label: 'Data Integrity', value: '100%', icon: 'fa-shield-alt', color: 'text-rose-400', border: 'border-rose-500/20', bg: 'bg-rose-500/10', shadow: 'shadow-rose-500/20' },

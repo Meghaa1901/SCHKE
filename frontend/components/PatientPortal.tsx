@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { scke } from '../services/sckeService';
-import { federatedService, DiagnosticPrediction } from '../services/federatedService';
 import { Patient, Prescription, AccessLog } from '../types';
 
 interface PatientPortalProps {
@@ -13,16 +12,6 @@ const PatientPortal: React.FC<PatientPortalProps> = ({ patientId }) => {
   const [logs, setLogs] = useState<AccessLog[]>([]);
   const [isUploading, setIsUploading] = useState(false);
 
-  // Federated AI state
-  const [selectedSymptoms, setSelectedSymptoms] = useState<string[]>([]);
-  const [aiPredictions, setAiPredictions] = useState<DiagnosticPrediction[]>([]);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
-
-  const availableSymptoms = [
-    'chest pain', 'fatigue', 'shortness of breath', 'headache', 'joint pain', 'vision blur',
-    'persistent cough', 'unexplained weight loss', 'lump/swelling', 'night sweats', 'fever', 'abdominal pain', 'skin change'
-  ];
-
   useEffect(() => {
     refreshData();
   }, [patientId]);
@@ -34,23 +23,6 @@ const PatientPortal: React.FC<PatientPortalProps> = ({ patientId }) => {
       setPrescriptions(scke.getPrescriptions(patientId));
       setLogs(scke.getAccessLogs(patientId));
     }
-  };
-
-  const handleRunFederatedAI = async () => {
-    if (!patient) return;
-    setIsAnalyzing(true);
-    try {
-      const results = await federatedService.predictDiagnosis(selectedSymptoms, patient.age, patient.medications || []);
-      setAiPredictions(results);
-    } catch (err) {
-      console.error("Federated AI Error:", err);
-    } finally {
-      setIsAnalyzing(false);
-    }
-  };
-
-  const toggleSymptom = (s: string) => {
-    setSelectedSymptoms(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s]);
   };
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -251,59 +223,6 @@ const PatientPortal: React.FC<PatientPortalProps> = ({ patientId }) => {
               </div>
             </div>
           )}
-
-          {/* Federated AI Diagnostic Section for Patients */}
-          <div className="bg-slate-900 p-12 rounded-[3.5rem] shadow-2xl text-white relative overflow-hidden border border-white/5">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 blur-3xl rounded-full"></div>
-            <h3 className="text-[11px] font-black text-emerald-400 uppercase tracking-widest mb-8 flex items-center gap-4">
-              <i className="fas fa-brain"></i> Federated AI Check
-            </h3>
-            <p className="text-xs text-slate-400 font-medium leading-relaxed mb-10">
-              Compare your current symptoms and medications against the global network's patterns.
-            </p>
-            
-            <div className="space-y-8">
-              <div className="flex flex-wrap gap-3">
-                {availableSymptoms.map(s => (
-                  <button
-                    key={s}
-                    onClick={() => toggleSymptom(s)}
-                    className={`px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border ${
-                      selectedSymptoms.includes(s) 
-                        ? 'bg-emerald-500 border-emerald-400 text-white shadow-2xl shadow-emerald-500/20' 
-                        : 'bg-slate-800 border-slate-700 text-slate-500 hover:text-slate-300'
-                    }`}
-                  >
-                    {s}
-                  </button>
-                ))}
-              </div>
-
-              <button 
-                onClick={handleRunFederatedAI}
-                disabled={isAnalyzing || selectedSymptoms.length === 0}
-                className="w-full py-5 bg-emerald-500 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-2xl shadow-emerald-500/20 hover:bg-emerald-600 disabled:opacity-50 transition-all"
-              >
-                {isAnalyzing ? <i className="fas fa-circle-notch fa-spin text-xl"></i> : 'Analyze Patterns'}
-              </button>
-            </div>
-
-            {aiPredictions.length > 0 && (
-              <div className="mt-10 space-y-5 animate-in slide-in-from-bottom-4 duration-500">
-                {aiPredictions.map((p, i) => (
-                  <div key={i} className="bg-slate-800/50 p-6 rounded-3xl border border-white/5 shadow-2xl">
-                    <div className="flex justify-between items-start mb-4">
-                      <span className="text-xs font-black text-emerald-400 uppercase tracking-widest">{p.condition}</span>
-                      <span className="text-[11px] font-mono text-slate-500">{(p.confidence * 100).toFixed(0)}%</span>
-                    </div>
-                    <p className="text-[11px] text-slate-400 leading-relaxed italic font-medium">
-                      {p.recommendation}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
         </div>
 
         {/* Right Column: Timeline */}

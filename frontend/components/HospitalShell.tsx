@@ -4,7 +4,6 @@ import Dashboard from './Dashboard';
 import RegisterPatient from './RegisterPatient';
 import DataExchange from './DataExchange';
 import OntologyMap from './OntologyMap';
-import FederatedDashboard from './FederatedDashboard';
 import UpdateRecords from './UpdateRecords';
 import SecurityLogs from './SecurityLogs';
 import AIAssistant from './AIAssistant';
@@ -30,12 +29,10 @@ const HospitalShell: React.FC<HospitalShellProps> = ({ hospitalId }) => {
         return <OntologyMap />;
       case 'diagnosis':
         return <AIAssistant />;
-      case 'federated':
-        return <FederatedDashboard />;
       case 'logs':
         return <SecurityLogs hospitalId={hospitalId} />;
       default:
-        return <Dashboard />;
+        return <Dashboard hospitalId={hospitalId} />;
     }
   };
 

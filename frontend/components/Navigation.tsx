@@ -1,6 +1,4 @@
-
 import React from 'react';
-import { federatedService } from '../services/federatedService';
 import { scke } from '../services/sckeService';
 
 interface NavigationProps {
@@ -17,12 +15,9 @@ const Navigation: React.FC<NavigationProps> = ({ activeTab, setActiveTab, hospit
     { id: 'exchange', label: 'Data Exchange', icon: 'fa-network-wired' },
     { id: 'update', label: 'Update Records', icon: 'fa-file-medical' },
     { id: 'ontology', label: 'Ontology Map', icon: 'fa-project-diagram' },
-    { id: 'diagnosis', label: 'AI Diagnosis', icon: 'fa-microscope' },
-    { id: 'federated', label: 'Federated AI', icon: 'fa-brain' },
+    { id: 'diagnosis', label: 'AI Assistant', icon: 'fa-microscope' },
     { id: 'logs', label: 'Security Logs', icon: 'fa-shield-alt' },
   ];
-
-  const globalModel = federatedService.getGlobalModel();
 
   return (
     <nav className="h-screen flex flex-col font-sans bg-slate-900/40 backdrop-blur-3xl border-r border-white/5">
@@ -70,26 +65,6 @@ const Navigation: React.FC<NavigationProps> = ({ activeTab, setActiveTab, hospit
               )}
             </button>
           ))}
-        </div>
-      </div>
-      
-      {/* Federated AI Status Card */}
-      <div className="px-10 mb-10">
-        <div className="p-6 rounded-3xl bg-gradient-to-br from-indigo-500/10 to-blue-500/10 border border-white/5">
-          <div className="flex items-center gap-2 mb-4">
-            <i className="fas fa-brain text-indigo-400 text-xs"></i>
-            <span className="text-[9px] font-bold uppercase tracking-widest text-indigo-400">Federated Intelligence</span>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <div className="text-lg font-black text-white">v{globalModel.version}</div>
-              <div className="text-[9px] font-bold text-slate-500 uppercase">Model</div>
-            </div>
-            <div>
-              <div className="text-lg font-black text-emerald-400">{(globalModel.accuracy * 100).toFixed(1)}%</div>
-              <div className="text-[9px] font-bold text-slate-500 uppercase">Accuracy</div>
-            </div>
-          </div>
         </div>
       </div>
 
