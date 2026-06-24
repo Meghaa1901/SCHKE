@@ -44,6 +44,23 @@ def get_hospital(hospital_id: str, session: Session = Depends(get_session)):
         raise HTTPException(status_code=404, detail="Hospital not found")
     return hospital
 
+@app.get("/stats")
+def get_stats(session: Session = Depends(get_session)):
+    hospital_count = len(session.exec(select(Hospital)).all())
+    patient_count = len(session.exec(select(Patient)).all())
+    # Each ontology synonym is one semantic mapping (condition + allergy synonyms)
+    mapping_count = len(ONTOLOGY["conditions"]) + len(ONTOLOGY["allergies"])
+    # Records extracted per hospital, from the real audit log
+    logs = session.exec(select(AccessLog)).all()
+    per_hospital = {}
+    for log in logs:
+        per_hospital[log.hospital_id] = per_hospital.get(log.hospital_id, 0) + 1
+    return {
+        "hospitals": hospital_count,
+        "patients": patient_count,
+        "semantic_mappings": mapping_count,
+        "records_per_hospital": per_hospital,
+    }
 
 @app.get("/patients/{patient_id}", response_model=PatientRead)
 def get_patient(patient_id: str, session: Session = Depends(get_session)):
@@ -51,6 +68,10 @@ def get_patient(patient_id: str, session: Session = Depends(get_session)):
     if not patient:
         raise HTTPException(status_code=404, detail="Patient not found")
     return patient
+
+@app.get("/patients", response_model=list[PatientRead])
+def list_patients(session: Session = Depends(get_session)):
+    return session.exec(select(Patient)).all()
 
 
 @app.post("/patients", response_model=RegisterResponse)

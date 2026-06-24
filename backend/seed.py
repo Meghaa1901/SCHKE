@@ -1,3 +1,4 @@
+import random
 from datetime import datetime, timedelta
 from sqlmodel import Session, select
 from database import engine
@@ -12,7 +13,8 @@ hospitals = [
     Hospital(id="HOSP-DEMO", name="Metropolis General (Reviewer Node)", style="Hybrid", managedBy="Metropolis Health Administration"),
 ]
 
-patients = [
+# The three named demo accounts — IDs and secure keys are stable so logins keep working.
+core_patients = [
     Patient(id="PAT-123456", name="John Doe", age=45, gender="Male", blood_type="A+",
             phone="+1 (555) 019-2834", national_id_hash="sha-77a...", unique_id="123456789012",
             id_type="Aadhar", secure_key="SCKE-JD92", medications=[], conditions=["Diabetes"]),
@@ -26,16 +28,72 @@ patients = [
             conditions=["Hypertension"]),
 ]
 
+# ---- Generate 22 more realistic patients so the dashboard looks populated ----
+
+_first_names = ["Maria", "David", "Priya", "James", "Aisha", "Robert", "Sofia", "Liam",
+                "Chen", "Fatima", "Noah", "Elena", "Omar", "Grace", "Hassan", "Lucas",
+                "Ananya", "Daniel", "Yuki", "Carlos", "Nadia", "Ethan"]
+_last_names = ["Garcia", "Kim", "Patel", "Wilson", "Khan", "Brown", "Rossi", "Murphy",
+               "Wang", "Ahmed", "Schmidt", "Petrov", "Hassan", "Lee", "Ali", "Costa",
+               "Sharma", "Cohen", "Tanaka", "Mendez", "Haddad", "Clark"]
+_blood = ["A+", "A-", "B+", "B-", "O+", "O-", "AB+", "AB-"]
+_condition_pool = ["Diabetes", "Hypertension", "Asthma", "High Cholesterol", "Acid Reflux",
+                   "Osteoarthritis", "COPD", "Coronary Artery Disease", "Chronic Kidney Disease",
+                   "Hypothyroidism", "Stroke"]
+_med_pool = ["Metformin 500mg", "Amlodipine 5mg", "Atorvastatin 20mg", "Salbutamol inhaler",
+             "Omeprazole 20mg", "Levothyroxine 50mcg", "Aspirin 75mg", "Losartan 50mg",
+             "Ibuprofen 400mg PRN", "Insulin glargine"]
+
+random.seed(42)  # fixed seed -> same demo data every time you re-seed
+
+generated_patients = []
+for i in range(22):
+    pid = f"PAT-2{4000 + i}"  # PAT-24000 .. PAT-24021 (won't collide with random PAT-1xxxx registrations)
+    name = f"{_first_names[i]} {_last_names[i]}"
+    n_cond = random.randint(0, 2)
+    n_med = random.randint(0, 3)
+    generated_patients.append(
+        Patient(
+            id=pid,
+            name=name,
+            age=random.randint(19, 82),
+            gender=random.choice(["Male", "Female"]),
+            blood_type=random.choice(_blood),
+            phone=f"+1 (555) {random.randint(100, 999)}-{random.randint(1000, 9999)}",
+            national_id_hash=f"sha-{random.randint(100, 999)}...",
+            unique_id=str(random.randint(100000000000, 999999999999)),
+            id_type="Aadhar",
+            secure_key=f"SCKE-{random.randint(1000, 9999)}",
+            medications=random.sample(_med_pool, n_med),
+            conditions=random.sample(_condition_pool, n_cond),
+        )
+    )
+
+patients = core_patients + generated_patients
+
+# ---- Generate a spread of audit-log entries across all hospitals ----
+
 now = datetime.now()
-logs = [
-    AccessLog(timestamp=(now - timedelta(hours=1)).isoformat(), hospital_id="HOSP-01",
-              action="DATA_RETRIEVAL_EMERGENCY", patient_id="PAT-123456", details="Source: HOSP-02, HOSP-03"),
-    AccessLog(timestamp=(now - timedelta(hours=2)).isoformat(), hospital_id="HOSP-02",
-              action="CLINICAL_DOC_AI_ANALYSIS_SYNC", patient_id="PAT-888999", details="Vision AI processing complete"),
-    AccessLog(timestamp=(now - timedelta(days=1)).isoformat(), hospital_id="HOSP-03",
-              action="DATA_RETRIEVAL_ROUTINE", patient_id="PAT-DEMO", details="Source: HOSP-01"),
-   
-]
+_actions = ["DATA_RETRIEVAL_EMERGENCY", "DATA_RETRIEVAL_ROUTINE", "CLINICAL_DOC_AI_ANALYSIS_SYNC"]
+hospital_ids = [h.id for h in hospitals]
+all_patient_ids = [p.id for p in patients]
+
+logs = []
+for i in range(40):
+    hosp = random.choice(hospital_ids)
+    pat = random.choice(all_patient_ids)
+    action = random.choice(_actions)
+    detail = "Vision AI processing complete" if action == "CLINICAL_DOC_AI_ANALYSIS_SYNC" \
+        else f"Source: {random.choice(hospital_ids)}"
+    logs.append(
+        AccessLog(
+            timestamp=(now - timedelta(hours=random.randint(1, 240))).isoformat(),
+            hospital_id=hosp,
+            action=action,
+            patient_id=pat,
+            details=detail,
+        )
+    )
 
 
 def seed():

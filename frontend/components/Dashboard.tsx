@@ -8,26 +8,36 @@ interface DashboardProps {
   hospitalId?: string;
 }
 
+interface Stats {
+  hospitals: number;
+  patients: number;
+  semantic_mappings: number;
+  records_per_hospital: Record<string, number>;
+}
+
 const Dashboard: React.FC<DashboardProps> = ({ hospitalId }) => {
   const [logs, setLogs] = useState<AccessLog[]>([]);
+  const [stats, setStats] = useState<Stats | null>(null);
 
   useEffect(() => {
+    scke.getStats().then(setStats);
     if (hospitalId) {
       scke.getHospitalLogs(hospitalId).then(all => setLogs(all.slice(-5).reverse()));
     }
   }, [hospitalId]);
-  
-  const stats = [
-    { label: 'Source Hospitals', value: HOSPITALS.length.toString(), icon: 'fa-network-wired', color: 'text-blue-400', border: 'border-blue-500/20', bg: 'bg-blue-500/10', shadow: 'shadow-blue-500/20' },
-    { label: 'Total Patients', value: '2,842', icon: 'fa-users', color: 'text-emerald-400', border: 'border-emerald-500/20', bg: 'bg-emerald-500/10', shadow: 'shadow-emerald-500/20' },
-    { label: 'Semantic Mappings', value: '156', icon: 'fa-project-diagram', color: 'text-purple-400', border: 'border-purple-500/20', bg: 'bg-purple-500/10', shadow: 'shadow-purple-500/20' },
+
+  const statCards = [
+    { label: 'Source Hospitals', value: stats ? stats.hospitals.toString() : '—', icon: 'fa-network-wired', color: 'text-blue-400', border: 'border-blue-500/20', bg: 'bg-blue-500/10', shadow: 'shadow-blue-500/20' },
+    { label: 'Registered Patients', value: stats ? stats.patients.toString() : '—', icon: 'fa-users', color: 'text-emerald-400', border: 'border-emerald-500/20', bg: 'bg-emerald-500/10', shadow: 'shadow-emerald-500/20' },
+    { label: 'Semantic Mappings', value: stats ? stats.semantic_mappings.toString() : '—', icon: 'fa-project-diagram', color: 'text-purple-400', border: 'border-purple-500/20', bg: 'bg-purple-500/10', shadow: 'shadow-purple-500/20' },
     { label: 'Data Integrity', value: '100%', icon: 'fa-shield-alt', color: 'text-rose-400', border: 'border-rose-500/20', bg: 'bg-rose-500/10', shadow: 'shadow-rose-500/20' },
   ];
 
+  const barColors = ['#60a5fa', '#34d399', '#a78bfa', '#fbbf24', '#f87171', '#818cf8'];
   const chartData = HOSPITALS.map((h, i) => ({
     name: h.id,
-    records: 300 + Math.floor(Math.random() * 500),
-    color: ['#60a5fa', '#34d399', '#a78bfa', '#fbbf24', '#f87171', '#818cf8'][i % 6]
+    records: stats?.records_per_hospital?.[h.id] ?? 0,
+    color: barColors[i % barColors.length],
   }));
 
   return (
@@ -44,7 +54,7 @@ const Dashboard: React.FC<DashboardProps> = ({ hospitalId }) => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-        {stats.map((stat, i) => (
+        {statCards.map((stat, i) => (
           <div key={i} className="bg-slate-900/40 backdrop-blur-3xl p-10 rounded-[2.5rem] border border-white/5 shadow-2xl hover:shadow-blue-500/5 hover:-translate-y-2 transition-all duration-500 relative overflow-hidden group">
             <div className={`w-16 h-16 rounded-2xl flex items-center justify-center mb-8 shadow-2xl border ${stat.bg} ${stat.border} ${stat.color}`}>
               <i className={`fas ${stat.icon} text-2xl`}></i>
@@ -59,7 +69,7 @@ const Dashboard: React.FC<DashboardProps> = ({ hospitalId }) => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
         <div className="lg:col-span-2 bg-slate-900/40 backdrop-blur-3xl p-12 rounded-[3.5rem] border border-white/5 shadow-2xl">
           <h3 className="text-xs font-black text-slate-500 uppercase tracking-widest mb-12 flex items-center gap-4">
-            <i className="fas fa-chart-bar text-blue-400"></i> Records Extracted per Node
+            <i className="fas fa-chart-bar text-blue-400"></i> Access Events per Node
           </h3>
           
           <div className="h-[400px]">
@@ -67,7 +77,7 @@ const Dashboard: React.FC<DashboardProps> = ({ hospitalId }) => {
               <BarChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#ffffff05" />
                 <XAxis dataKey="name" stroke="#64748b" fontSize={11} tickLine={false} axisLine={false} tick={{ fontWeight: 'bold' }} />
-                <YAxis stroke="#64748b" fontSize={11} tickLine={false} axisLine={false} tick={{ fontWeight: 'bold' }} />
+                <YAxis stroke="#64748b" fontSize={11} tickLine={false} axisLine={false} tick={{ fontWeight: 'bold' }} allowDecimals={false} />
                 <Tooltip 
                   cursor={{fill: '#ffffff05'}}
                   contentStyle={{ backgroundColor: '#0f172a', border: '1px solid #ffffff10', borderRadius: '1.5rem', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)', color: '#fff', fontWeight: 'bold', fontSize: '13px', padding: '15px 25px' }}

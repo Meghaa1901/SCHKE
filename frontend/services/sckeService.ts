@@ -203,6 +203,12 @@ class SCKEService {
     return logs.filter(l => l.hospital_id === hospital_id || (l.details ? l.details.includes(hospital_id) : false));
   }
 
+  async getStats(): Promise<any> {
+    const res = await fetch(`${API_BASE}/stats`);
+    if (!res.ok) return null;
+    return await res.json();
+  }
+
   // Expose the core ontology as an RDF Graph for UI visualization
   getOntologyRDF(): RDFTriple[] {
     const graph = new RDFGraph();
