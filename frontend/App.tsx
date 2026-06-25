@@ -64,7 +64,7 @@ const App: React.FC = () => {
           </div>
 
           <div className="mt-16 flex justify-center gap-8 opacity-40 animate-in fade-in duration-1000 delay-500">
-            {['End-to-End', 'AES-256', 'HIPAA', 'FHIR R4'].map(badge => (
+            {['Semantic Ontology', 'AI-Powered', 'FastAPI', 'Audit Logged'].map(badge => (
               <div key={badge} className="flex items-center gap-2 text-[10px] font-black tracking-[0.3em] text-white uppercase">
                 <ShieldCheck size={12} className="text-blue-500" /> {badge}
               </div>
