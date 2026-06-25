@@ -1,3 +1,4 @@
+import os
 import random
 import string
 import hashlib
@@ -16,9 +17,19 @@ from models import (
 )
 from retrieval import retrieve, ONTOLOGY, ontology_triples
 from ai import clinical_assistant, extract_prescription
+from database import create_db_and_tables
+from seed import seed
+from seed_records import seed_records
 
 app = FastAPI(title="SCKE API")
-import os
+@app.on_event("startup")
+def on_startup():
+    # On a fresh server the database file and tables don't exist yet,
+    # so create everything and load demo data when the app boots.
+    create_db_and_tables()
+    seed()
+    seed_records()
+
 
 # Local dev origins always allowed; production frontend URL comes from an env var.
 allowed_origins = ["http://localhost:3000", "http://127.0.0.1:3000"]
