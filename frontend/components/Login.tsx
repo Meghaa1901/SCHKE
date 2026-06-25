@@ -287,7 +287,7 @@ const Login: React.FC<LoginProps> = ({ portal, onLogin, onBack }) => {
               <i className="fas fa-shield-alt text-blue-500"></i> Identity Verified
            </div>
            <div className="flex items-center gap-2 text-[8px] font-bold uppercase tracking-widest text-white">
-              <i className="fas fa-at text-blue-500"></i> Zero-Knowledge Proof
+              <i className="fas fa-at text-blue-500"></i> Secure Key Authentication
            </div>
         </div>
       </div>
