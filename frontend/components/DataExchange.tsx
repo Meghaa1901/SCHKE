@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { scke } from '../services/sckeService';
 import { RetrievalResult, Hospital } from '../types';
@@ -33,6 +32,31 @@ const DataExchange: React.FC<DataExchangeProps> = ({ hospitalId: initialHospital
       // Show audit log confirmation
       console.log(`Audit log created for ${hospitalId} accessing ${patientId}`);
     }, 1500);
+  };
+
+  const handleExportCDA = () => {
+    if (!result) return;
+    // Build a portable clinical-summary document from the retrieved data
+    // and download it as a JSON file (no server round-trip needed).
+    const doc = {
+      document_type: 'Unified Patient Summary (SCHKE)',
+      generated_at: new Date().toISOString(),
+      requesting_hospital: hospitalId,
+      patient_id: result.patient_id,
+      confidence_score: result.confidence_score,
+      normalized_conditions: result.conditions,
+      confirmed_allergies: result.allergies_confirmed,
+      medications: result.medications,
+    };
+    const blob = new Blob([JSON.stringify(doc, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `SCHKE_${result.patient_id}_summary.json`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   return (
@@ -163,18 +187,12 @@ const DataExchange: React.FC<DataExchangeProps> = ({ hospitalId: initialHospital
                 </div>
               </div>
 
-              <div className="pt-8 border-t border-white/5 flex gap-6">
+              <div className="pt-8 border-t border-white/5">
                 <button 
-                  onClick={() => alert(`CDA Document for ${patientId} exported successfully.`)}
-                  className="flex-1 py-5 bg-blue-600 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-2xl shadow-blue-500/20 hover:bg-blue-700 transition-all"
+                  onClick={handleExportCDA}
+                  className="w-full py-5 bg-blue-600 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest shadow-2xl shadow-blue-500/20 hover:bg-blue-700 transition-all flex items-center justify-center gap-3"
                 >
-                  Export CDA
-                </button>
-                <button 
-                  onClick={() => alert(`Data for ${patientId} synchronized to ${hospitalId} EMR.`)}
-                  className="flex-1 py-5 bg-white/5 text-white border border-white/10 rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-white/10 transition-all"
-                >
-                  Sync to EMR
+                  <i className="fas fa-download"></i> Export Unified Summary
                 </button>
               </div>
             </div>
