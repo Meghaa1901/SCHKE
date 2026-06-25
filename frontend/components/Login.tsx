@@ -115,7 +115,7 @@ const Login: React.FC<LoginProps> = ({ portal, onLogin, onBack }) => {
                 </div>
               </div>
               <h2 className="text-3xl font-black tracking-tighter text-white mb-2">
-                SCKE <span className={isHospital ? 'text-blue-400' : 'text-indigo-400'}>Portal</span>
+                SCHKE <span className={isHospital ? 'text-blue-400' : 'text-indigo-400'}>Portal</span>
               </h2>
               <p className="text-slate-500 text-[10px] font-black uppercase tracking-widest leading-none">
                 {isHospital ? 'Authorized Medical Node Access' : 'Secure Patient Identity Layer'}

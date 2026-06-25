@@ -28,7 +28,7 @@ const Navigation: React.FC<NavigationProps> = ({ activeTab, setActiveTab, hospit
             <i className="fas fa-stethoscope text-2xl"></i>
           </div>
           <div>
-            <h1 className="text-2xl font-black tracking-tighter text-white leading-none">SCKE</h1>
+            <h1 className="text-2xl font-black tracking-tighter text-white leading-none">SCHKE</h1>
             <p className="text-[10px] font-mono font-bold text-blue-400 uppercase tracking-widest mt-1">Hospital Node</p>
           </div>
         </div>

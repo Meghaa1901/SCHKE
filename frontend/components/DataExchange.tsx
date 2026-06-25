@@ -39,7 +39,7 @@ const DataExchange: React.FC<DataExchangeProps> = ({ hospitalId: initialHospital
     <div className="space-y-12 animate-in fade-in duration-500">
       <div className="flex justify-between items-start">
         <div>
-          <h2 className="text-4xl font-black text-white tracking-tight">SCKE Data Exchange</h2>
+          <h2 className="text-4xl font-black text-white tracking-tight">SCHKE Data Exchange</h2>
           <p className="text-slate-400 font-medium mt-2">Initiate cross-hospital multi-agent semantic retrieval.</p>
         </div>
         <div className="bg-emerald-500/10 border border-emerald-500/20 px-6 py-3 rounded-2xl flex items-center gap-4">

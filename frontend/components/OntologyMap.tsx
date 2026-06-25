@@ -31,7 +31,7 @@ const OntologyMap: React.FC = () => {
       <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-8 bg-slate-900/40 backdrop-blur-3xl p-10 rounded-[3rem] border border-white/5 shadow-2xl">
         <div>
           <h2 className="text-4xl font-black text-white tracking-tight mb-3">Semantic Ontology Map</h2>
-          <p className="text-slate-400 font-medium">Visualization of medical term mappings within the SCKE knowledge layer.</p>
+          <p className="text-slate-400 font-medium">Visualization of medical term mappings within the SCHKE knowledge layer.</p>
         </div>
         
         <div className="flex bg-white/5 p-2 rounded-2xl w-fit border border-white/5 shadow-2xl">
@@ -120,7 +120,7 @@ const OntologyMap: React.FC = () => {
           <div className="space-y-3">
             <h3 className="text-base font-black text-white uppercase tracking-widest">Intelligent Graph Normalization</h3>
             <p className="text-sm text-slate-400 leading-relaxed font-medium">
-              The SCKE semantic layer maps all disparate medical data as RDF Triples. By asserting <span className="font-mono bg-slate-950 border border-white/10 text-blue-400 px-2 py-1 rounded shadow-2xl">owl:sameAs</span> rules, 
+              The SCHKE semantic layer maps all disparate medical data as RDF Triples. By asserting <span className="font-mono bg-slate-950 border border-white/10 text-blue-400 px-2 py-1 rounded shadow-2xl">owl:sameAs</span> rules, 
               the reasoner infers that informal descriptions (like "sugar disease") or abbreviations (like "HTN") point to exactly the same canonical nodes in SNOMED or ICD-10.
             </p>
           </div>

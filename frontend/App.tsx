@@ -26,7 +26,7 @@ const App: React.FC = () => {
         <div className="max-w-5xl w-full relative z-10">
           <div className="text-center mb-16 animate-in fade-in slide-in-from-top-4 duration-700">
             <h1 className="text-6xl md:text-8xl font-black text-white mb-6 tracking-tighter">
-              SCKE <span className="text-blue-500">NETWORK</span>
+              SCHKE <span className="text-blue-500">NETWORK</span>
             </h1>
             <p className="text-slate-400 text-lg font-medium max-w-2xl mx-auto">
               Secure Semantic Cross-Hospital Knowledge Exchange.
@@ -107,7 +107,7 @@ const App: React.FC = () => {
             <HeartPulse size={24} />
           </div>
           <div>
-            <h1 className="font-black tracking-tighter text-2xl text-white">My-SCKE <span className="text-blue-400 font-medium">{portal}</span></h1>
+            <h1 className="font-black tracking-tighter text-2xl text-white">My-SCHKE <span className="text-blue-400 font-medium">{portal}</span></h1>
             <div className="flex items-center gap-2">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
               <span className="text-[9px] font-black uppercase tracking-widest text-slate-500">
